@@ -103,7 +103,7 @@ ini_set('session.use_cookies', 1);
 ini_set('session.use_only_cookies', 1);
 	# Prevent php to use sessionID in URL if cookies are disabled.
 ini_set('session.use_trans_sid', false);
-session_name('BumpyBooby');
+session_name('PHPSESSID');
 session_start();
 
 
@@ -201,76 +201,96 @@ function logout() {
 		unset($_SESSION['id']);
 		unset($_SESSION['username']);
 		unset($_SESSION['ip']);
+		unset($_SESSION['ytbauth']);
 	}
 }
-if (isset($_POST['login'])
-	&& isset($_POST['username'])
-	&& isset($_POST['password'])
-	&& isset($_POST['token'])
-) {
-	if (!tokenOk($_POST['token'])) {
-		$page->addAlert(Trad::A_ERROR_TOKEN);
-	}
-	else {
-		logout();
-		$settings = new Settings;
-		$matching_user = array();
-		$wait = time();
-		foreach ($config['users'] as $u) {
-			if ($u['username'] == $_POST['username']) {
-				$wait = max($wait, $u['wait_until']);
-				if ($u['hash'] ==
-					Text::getHash($_POST['password'], $_POST['username'])
-				) {
-					$matching_user = $u;
+if (!isset($_POST['new_user'])){
+	if (!isset($_SESSION['ytbauth'])) {
+		$_POST['token'] = getToken();
+		if (!tokenOk($_POST['token'])) {
+			$page->addAlert(Trad::A_ERROR_TOKEN);
+		} else {
+			logout();
+			// PLEXAUTH //
+			if (isset($_SESSION['ytbuser'])){
+				require_once('PlexUser.class.php'); //Set this to the path of the PlexAuth user class. eg /PlexAuth/inc/PlexUser.class.php
+				$User = unserialize($_SESSION['ytbuser']);
+				
+				$auth = $User->getAuth();
+				$ClaimedUser = $User->getUsername();
+				
+				if ($auth) {
+					$_POST['username'] = (string)$ClaimedUser;
+					$_POST['password'] = (string)$User->getID();
+				}
+				
+				$settings = new Settings;
+				$matching_user = array();
+				$wait = time();
+				foreach ($config['users'] as $u) {
+					if ($u['username'] == $_POST['username']) {
+						$wait = max($wait, $u['wait_until']);
+						if ($u['hash'] ==
+							Text::getHash($_POST['password'], $_POST['username'])
+						) {
+							$matching_user = $u;
+						}
+						else {
+							$settings->login_failed($u['id']);
+						}
+					}
+				}
+				if ($wait > time()) {
+					$page->addAlert(str_replace(
+						array('%duration%', '%period%'),
+						Text::timeDiff($wait, time()),
+						Trad::A_ERROR_LOGIN_WAIT
+					));
+				}
+				elseif (!empty($matching_user)) {
+					$_SESSION['uid'] = Text::randomKey(40);
+					$_SESSION['id'] = $matching_user['id'];
+					$_SESSION['username'] = $matching_user['username'];
+					$_SESSION['ip'] = getAllIPs();
+					$_SESSION['expires_on'] = time()+TIMEOUT;
+					$_SESSION['ytbauth'] = true;
+						# 0 means "When browser closes"
+					session_set_cookie_params(0, Text::dir($_SERVER["SCRIPT_NAME"]));
+					session_regenerate_id(true);
+					logm('Login successful.');
+					$settings->login_successful($u['id']);
+					$page->addAlert(Trad::A_LOGGED, 'alert-success');
 				}
 				else {
-					$settings->login_failed($u['id']);
+					logm('Login failed for user “'.str_replace(
+						array("\n", "\t"),
+						'',
+						$_POST['username'])
+					.'”');
+					$wait = time();
+					foreach ($config['users'] as $u) {
+						if ($u['username'] == $_POST['username']) {
+							$wait = max($wait, $u['wait_until']);
+						}
+					}
+					if ($wait > time()) {
+						$page->addAlert(str_replace(
+							array('%duration%', '%period%'),
+							Text::timeDiff($wait,time()),
+							Trad::A_ERROR_CONNEXION_WAIT
+						));
+					}
+					else {
+						$page->addAlert(Trad::A_ERROR_CONNEXION);
+					}
 				}
+				
+			} else {
+				$_SESSION['return_url'] = "issues.domain.com"; //URL of this site.
+				header("Location: https://secure.domain.com"); //URL of PlexAuth.
+				die();
 			}
-		}
-		if ($wait > time()) {
-			$page->addAlert(str_replace(
-				array('%duration%', '%period%'),
-				Text::timeDiff($wait, time()),
-				Trad::A_ERROR_LOGIN_WAIT
-			));
-		}
-		elseif (!empty($matching_user)) {
-			$_SESSION['uid'] = Text::randomKey(40);
-			$_SESSION['id'] = $matching_user['id'];
-			$_SESSION['username'] = $matching_user['username'];
-			$_SESSION['ip'] = getAllIPs();
-			$_SESSION['expires_on'] = time()+TIMEOUT;
-				# 0 means "When browser closes"
-			session_set_cookie_params(0, Text::dir($_SERVER["SCRIPT_NAME"]));
-			session_regenerate_id(true);
-			logm('Login successful.');
-			$settings->login_successful($u['id']);
-			$page->addAlert(Trad::A_LOGGED, 'alert-success');
-		}
-		else {
-			logm('Login failed for user “'.str_replace(
-				array("\n", "\t"),
-				'',
-				$_POST['username'])
-			.'”');
-			$wait = time();
-			foreach ($config['users'] as $u) {
-				if ($u['username'] == $_POST['username']) {
-					$wait = max($wait, $u['wait_until']);
-				}
-			}
-			if ($wait > time()) {
-				$page->addAlert(str_replace(
-					array('%duration%', '%period%'),
-					Text::timeDiff($wait,time()),
-					Trad::A_ERROR_CONNEXION_WAIT
-				));
-			}
-			else {
-				$page->addAlert(Trad::A_ERROR_CONNEXION);
-			}
+			// END PLEXAUTH //
 		}
 	}
 }
