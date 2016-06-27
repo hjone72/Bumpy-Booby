@@ -199,8 +199,8 @@ function pa_session_regenerate($bool = false){
 	ini_set('session.entropy_file', '/dev/urandom');
 	ini_set('session.entropy_length', '512');
 	ini_set('session.hash_bits_per_character', 5);
-	session_set_cookie_params(0 , '/', $GLOBALS['ini_array']['domain']);
-	session_name($GLOBALS['ini_array']['session_name']);
+	session_set_cookie_params(0 , '/', 'domain.com');
+	session_name('PHPSESSID');
 	session_regenerate_id($bool);
 }
 
