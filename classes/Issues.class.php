@@ -299,7 +299,16 @@ class Issues {
 		));
 		foreach ($config['users'] as $u) {
 			if ($u['notifications'] == 'never') { continue; }
-			if ($u['notifications'] == 'me') { continue; }
+			if ($u['group'] == "plexmin" && $assignedto == NULL){
+                                $mail->replace_personal(array(
+         	                       '%username%' => Text::username($u['id'])
+                                ));
+	                        $mail->send($u['email']);
+				continue;
+                        }
+			if ($u['notifications'] == 'me' && $u['id'] != $assignedto) { 
+				continue;
+			}
 			if ($u['id'] == $by) { continue; }
 			$mail->replace_personal(array(
 				'%username%' => Text::username($u['id'])
@@ -431,6 +440,28 @@ class Issues {
 			$i['edit'] = time();
 		}
 
+		if ($assignedto != $i['assignedto']){
+			//Ticket has been assigned to another user. Notify them.
+			$mail = new Mail(Trad::M_NEW_ASSIGN_O, Trad::M_NEW_ASSIGN);
+			$mail->replace(array(
+				'%id%' => $id,
+				'%summary%' => $this->issues[$id]['summary'],
+				'%by%' => Text::username($by),
+				'%url%' => Url::parse($this->project.'/issues/'.$id)
+			));
+			foreach ($config['users'] as $u) {
+				if ($u['notifications'] == 'never') { continue; }
+				if ($u['id'] == $by) { continue; }
+				if ($u['id'] == $assignedto){
+					$mail->replace_personal(array(
+						'%username%' => Text::username($u['id'])
+					));
+					$mail->send($u['email']);
+				}
+			}
+
+		}
+
 		$i['status'] = $status;
 		$i['assignedto'] = $assignedto;
 		$i['dependencies'] = $dependencies;
@@ -551,6 +582,7 @@ class Issues {
 			'%id%' => $id,
 			'%summary%' => $this->issues[$id]['summary'],
 			'%by%' => Text::username($by),
+//			'%comment%' => $post['comment'],
 			'%url%' => Url::parse(
 				$this->project.'/issues/'.$id,
 				array(),
@@ -558,12 +590,17 @@ class Issues {
 			)
 		));
 		foreach ($config['users'] as $u) {
-			if ($u['notifications'] == 'never'
-				|| $u['notifications'] == 'me'
-			) {
-				if (!isset($mailto[$u['id']])) { continue; }
-				elseif (!$mailto[$u['id']]) { continue; }
-			}
+			if ($u['notifications'] == 'never' || ($u['notifications'] == 'me' && $this->issues[$id]['assignedto'] != $u['id'])) {
+                                if (!isset($mailto[$u['id']])) { continue; }
+                                elseif (!$mailto[$u['id']]) { continue; }
+                        }
+			if (($u['group'] == "plexmin" || $u['group'] == "superuser") && $assignedto == NULL){
+                                $mail->replace_personal(array(
+                                       '%username%' => Text::username($u['id'])
+                                ));
+                                $mail->send($u['email']);
+                                continue;
+                        }
 			if ($u['id'] == $by) { continue; }
 			$mail->replace_personal(array(
 				'%username%' => Text::username($u['id'])
