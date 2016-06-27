@@ -544,11 +544,6 @@ if (canAccess('settings')) {
 						<?php
 							}
 						?>
-						<input type="text" name="username" placeholder="<?php echo Trad::F_USERNAME2; ?>" />
-						<input type="password" name="password" placeholder="<?php echo Trad::F_PASSWORD2; ?>" class="input-left" />
-						<button type="submit" class="a-icon-hover"><i class="icon-white icon-circle-arrow-right"></i></button>
-						<input type="hidden" name="token" value="<?php echo getToken(); ?>" />
-						<input type="hidden" name="login" value="1" />
 					</form>
 					<?php
 						}
