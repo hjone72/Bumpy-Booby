@@ -194,6 +194,16 @@ function getAllIPs() {
     return $ip;
 }
 
+function pa_session_regenerate($bool = false){
+	ini_set('session.hash_function', 'whirlpool');
+	ini_set('session.entropy_file', '/dev/urandom');
+	ini_set('session.entropy_length', '512');
+	ini_set('session.hash_bits_per_character', 5);
+	session_set_cookie_params(0 , '/', $GLOBALS['ini_array']['domain']);
+	session_name($GLOBALS['ini_array']['session_name']);
+	session_regenerate_id($bool);
+}
+
 ### Authentification
 function logout() {
 	if (isset($_SESSION['uid'])) {
@@ -256,7 +266,7 @@ if (!isset($_POST['new_user'])){
 					$_SESSION['ytbauth'] = true;
 						# 0 means "When browser closes"
 					session_set_cookie_params(0, Text::dir($_SERVER["SCRIPT_NAME"]));
-					session_regenerate_id(true);
+					pa_session_regenerate(true);
 					logm('Login successful.');
 					$settings->login_successful($u['id']);
 					$page->addAlert(Trad::A_LOGGED, 'alert-success');
