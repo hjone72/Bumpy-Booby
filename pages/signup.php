@@ -3,6 +3,10 @@
 $username = (isset($_POST['username'])) ? htmlspecialchars($_POST['username']) : '';
 $email = (isset($_POST['email'])) ? htmlspecialchars($_POST['email']) : '';
 
+	if (isset($_SESSION['ytbuser'])){
+		$User = unserialize($_SESSION['ytbuser']);
+	}
+
 	if (isset($_POST['new_user'])) {
 		//This should never return false but just in case.
 		if (isset($_SESSION['ytbuser'])){
