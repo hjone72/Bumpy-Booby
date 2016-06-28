@@ -223,7 +223,6 @@ if (!isset($_POST['new_user'])){
 			logout();
 			// PLEXAUTH //
 			if (isset($_SESSION['ytbuser'])){
-				require_once('PlexUser.class.php'); //Set this to the path of the PlexAuth user class. eg /PlexAuth/inc/PlexUser.class.php
 				$User = unserialize($_SESSION['ytbuser']);
 				
 				$auth = $User->getAuth();
