@@ -290,6 +290,16 @@ function redirectAndDie($url, $return)
     die();
 }
 
+function curlGetJSON($url) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        return $obj = json_decode($result);
+}
+
 if (!isset($_POST['new_user']))
 {
     if (!isset($_SESSION['pa_auth']))
